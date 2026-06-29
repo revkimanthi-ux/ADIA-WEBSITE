@@ -1,0 +1,6 @@
+{
+  "name": "ADIA Empowerment Centre",
+  "description": "Official institutional website for ADIA Empowerment Centre, a vocational skills development centre in Nairobi, Kenya, offering programmes in IT, Hospitality, Fashion, and Beauty.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
