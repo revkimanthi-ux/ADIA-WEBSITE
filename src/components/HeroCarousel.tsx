@@ -84,6 +84,14 @@ export default function HeroCarousel({ setCurrentPage, setSelectedCourseId }: He
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [direction, setDirection] = useState<number>(1); // 1 = next, -1 = prev
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("admin") === "true" || params.get("configure") === "true") {
+      setIsAdmin(true);
+    }
+  }, []);
 
   // 2. CAROUSEL MANAGER MODAL STATE
   const [isManagerOpen, setIsManagerOpen] = useState(false);
@@ -430,16 +438,18 @@ export default function HeroCarousel({ setCurrentPage, setSelectedCourseId }: He
       )}
 
       {/* FLOAT MANAGE CAROUSEL BUTTON (CLEAN MINIMAL SETTINGS PIN) */}
-      <div className="absolute top-4 right-4 z-40">
-        <button
-          onClick={openManager}
-          title="Manage Slideshow"
-          className="flex items-center gap-2 px-3 py-1.5 bg-[#0D1B4B]/70 hover:bg-[#C9A84C] text-[#C9A84C] hover:text-[#0D1B4B] border border-[#C9A84C]/45 hover:border-transparent text-[10px] tracking-widest uppercase font-bold backdrop-blur-md transition-all duration-300 shadow-md cursor-pointer"
-        >
-          <Settings size={12} className="animate-spin-slow" />
-          <span>Configure Slider</span>
-        </button>
-      </div>
+      {isAdmin && (
+        <div className="absolute top-4 right-4 z-40">
+          <button
+            onClick={openManager}
+            title="Manage Slideshow"
+            className="flex items-center gap-2 px-3 py-1.5 bg-[#0D1B4B]/70 hover:bg-[#C9A84C] text-[#C9A84C] hover:text-[#0D1B4B] border border-[#C9A84C]/45 hover:border-transparent text-[10px] tracking-widest uppercase font-bold backdrop-blur-md transition-all duration-300 shadow-md cursor-pointer"
+          >
+            <Settings size={12} className="animate-spin-slow" />
+            <span>Configure Slider</span>
+          </button>
+        </div>
+      )}
 
       {/* MANUAL NAVIGATION CHEVRONS */}
       {slides.length > 1 && (
