@@ -165,7 +165,18 @@ export default function Footer({ setCurrentPage, setSelectedCourseId, headerConf
       {/* Prestige Gold Bottom Bar */}
       <div className="w-full bg-[#070E25] border-t border-white/5 py-6 px-6 md:px-12 text-center text-[10px] text-white/40 font-semibold tracking-wider uppercase">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-          <p>© 2026 ADIA Empowerment Centre. All rights reserved.</p>
+          <p>
+            © 2026 ADIA Empowerment Centre. All rights reserved. |{" "}
+            <button
+              onClick={() => {
+                setCurrentPage("admin");
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              className="text-brand-gold hover:text-white underline cursor-pointer bg-transparent border-none p-0 inline font-semibold uppercase tracking-wider text-[10px]"
+            >
+              Staff Portal
+            </button>
+          </p>
           <p className="flex items-center gap-2">
             <span className="text-[#C9A84C]">●</span> Brand Promise: Empowering Communities Through Skill Development
           </p>

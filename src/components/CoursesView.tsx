@@ -96,8 +96,8 @@ export default function CoursesView({ setCurrentPage, selectedCourseId, setSelec
               </div>
             </div>
 
-            {/* Highlighted Stat Cards (Duration, Intakes, Fees) */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Highlighted Stat Cards (Duration, Intakes) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-white/5 border border-white/10 p-4 rounded-none flex items-center gap-3">
                 <div className="w-10 h-10 bg-[#C9A84C] text-[#0D1B4B] flex items-center justify-center">
                   <Clock size={16} />
@@ -115,16 +115,6 @@ export default function CoursesView({ setCurrentPage, selectedCourseId, setSelec
                 <div>
                   <span className="text-[9px] text-white/40 uppercase tracking-widest block leading-none">Active Intakes</span>
                   <span className="text-xs font-bold text-white uppercase tracking-wider mt-1.5 block">{currentCourse.intakes.join(", ")}</span>
-                </div>
-              </div>
-
-              <div className="bg-white/5 border border-white/10 p-4 rounded-none flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#C9A84C] text-[#0D1B4B] flex items-center justify-center">
-                  <DollarSign size={16} />
-                </div>
-                <div>
-                  <span className="text-[9px] text-white/40 uppercase tracking-widest block leading-none">Tuition Cost</span>
-                  <span className="text-xs font-bold text-[#C9A84C] uppercase tracking-wider mt-1.5 block">{currentCourse.feesPerSemester}</span>
                 </div>
               </div>
             </div>

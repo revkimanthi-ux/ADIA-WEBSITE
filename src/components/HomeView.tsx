@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Page } from "../types";
 import { COURSES_DATA, TESTIMONIALS_DATA, NEWS_DATA } from "../data";
 import { ArrowRight, Award, Users, BookOpen, Clock, Play, Sparkles, CheckCircle } from "lucide-react";
@@ -9,6 +10,22 @@ interface HomeViewProps {
 }
 
 export default function HomeView({ setCurrentPage, setSelectedCourseId }: HomeViewProps) {
+  const [newsPosts, setNewsPosts] = useState(NEWS_DATA);
+
+  useEffect(() => {
+    fetch("/api/news")
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch news");
+        return res.json();
+      })
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setNewsPosts(data);
+        }
+      })
+      .catch((err) => console.warn("Using default static news in HomeView:", err));
+  }, []);
+
   const handleCourseClick = (courseId: string) => {
     setSelectedCourseId(courseId);
     setCurrentPage("courses");
@@ -123,7 +140,7 @@ export default function HomeView({ setCurrentPage, setSelectedCourseId }: HomeVi
             <div className="flex flex-col gap-6 mt-4">
               {[
                 { title: "Fully Equipped Practical Labs", desc: "Our students use industrial sewing machines, professional baking facilities, cosmetology models, and diagnostic IT computer rigs." },
-                { title: "Affordable & Flexible Payment Structures", desc: "No massive upfront demands. Tuition fee schedules are structured in affordable and transparent installments." },
+                { title: "100% Accredited and Approved By TVET & NITA", desc: "All courses at ADIA Empowerment Centre are fully accredited and approved by TVET & NITA, ensuring valid, highly recognized professional certifications." },
                 { title: "Experienced Industry Instructors", desc: "Learn directly under chefs, certified technologists, and styling salon operators with active market networks." },
                 { title: "Entrepreneurship & Freelance Coaching", desc: "We don't just teach the skill. Every module incorporates foundational accounting, branding, customer care, and business start-up rules." }
               ].map((point, idx) => (
@@ -222,7 +239,7 @@ export default function HomeView({ setCurrentPage, setSelectedCourseId }: HomeVi
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {NEWS_DATA.slice(0, 3).map((post) => (
+            {newsPosts.slice(0, 3).map((post) => (
               <div
                 key={post.id}
                 className="bg-white/5 border border-white/10 hover:border-[#C9A84C] overflow-hidden flex flex-col group transition-all duration-300"

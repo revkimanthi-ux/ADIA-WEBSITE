@@ -12,6 +12,7 @@ import AdmissionsView from "./components/AdmissionsView";
 import GalleryView from "./components/GalleryView";
 import NewsView from "./components/NewsView";
 import ContactView from "./components/ContactView";
+import AdminView from "./components/AdminView";
 
 const DEFAULT_HEADER_CONFIG: HeaderConfig = {
   tel: "0105086218",
@@ -66,6 +67,8 @@ export default function App() {
         return <NewsView />;
       case "contact":
         return <ContactView />;
+      case "admin":
+        return <AdminView setCurrentPage={setCurrentPage} />;
       default:
         return <HomeView setCurrentPage={setCurrentPage} setSelectedCourseId={setSelectedCourseId} />;
     }

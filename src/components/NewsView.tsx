@@ -1,14 +1,34 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NEWS_DATA } from "../data";
 import { NewsPost } from "../types";
-import { Search, Calendar, Tag, ChevronRight, X, Clock, HelpCircle } from "lucide-react";
+import { Search, Calendar, Tag, ChevronRight, X, Clock, HelpCircle, RefreshCw } from "lucide-react";
 
 export default function NewsView() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<"all" | "News" | "Event" | "Announcement">("all");
   const [activePost, setActivePost] = useState<NewsPost | null>(null);
+  const [newsPosts, setNewsPosts] = useState<NewsPost[]>(NEWS_DATA);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredPosts = NEWS_DATA.filter((post) => {
+  useEffect(() => {
+    fetch("/api/news")
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch news");
+        return res.json();
+      })
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setNewsPosts(data);
+        }
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        console.warn("Using default static news data:", err);
+        setIsLoading(false);
+      });
+  }, []);
+
+  const filteredPosts = newsPosts.filter((post) => {
     const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           post.summary.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           post.content.toLowerCase().includes(searchTerm.toLowerCase());

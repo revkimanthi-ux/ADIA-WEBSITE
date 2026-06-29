@@ -1,11 +1,31 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { GALLERY_DATA } from "../data";
 import { GalleryItem } from "../types";
-import { Camera, Layers, X, Info, Image } from "lucide-react";
+import { Camera, Layers, X, Info, Image, RefreshCw } from "lucide-react";
 
 export default function GalleryView() {
   const [filter, setFilter] = useState<"all" | "it" | "hospitality" | "fashion" | "beauty" | "campus">("all");
   const [activeItem, setActiveItem] = useState<GalleryItem | null>(null);
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>(GALLERY_DATA);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/gallery")
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch gallery");
+        return res.json();
+      })
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setGalleryItems(data);
+        }
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        console.warn("Using default static gallery data:", err);
+        setIsLoading(false);
+      });
+  }, []);
 
   const filterButtons: { label: string; value: typeof filter }[] = [
     { label: "All Photos", value: "all" },
@@ -17,8 +37,8 @@ export default function GalleryView() {
   ];
 
   const filteredData = filter === "all"
-    ? GALLERY_DATA
-    : GALLERY_DATA.filter((item) => item.category === filter);
+    ? galleryItems
+    : galleryItems.filter((item) => item.category === filter);
 
   return (
     <div className="w-full page-enter">

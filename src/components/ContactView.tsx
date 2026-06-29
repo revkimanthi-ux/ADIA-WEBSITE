@@ -92,7 +92,7 @@ export default function ContactView() {
                 <a href="tel:0105086218" className="text-sm text-white font-bold mt-1 block hover:text-brand-gold hover:underline transition-colors">
                   0105086218
                 </a>
-                <p className="text-[10px] text-white/50 mt-0.5">Safaricom line | Available 8:00 AM - 5:00 PM</p>
+                <p className="text-[10px] text-white/50 mt-0.5">Safaricom line | Available 02:30 AM - 04:00 PM</p>
               </div>
             </div>
 
@@ -103,9 +103,8 @@ export default function ContactView() {
               </div>
               <div>
                 <h4 className="font-bold text-xs uppercase tracking-wider text-brand-gold">Administrative Hours</h4>
-                <p className="text-xs text-white/90 mt-1 font-medium">Monday - Friday: 8:00 AM to 5:00 PM</p>
-                <p className="text-xs text-white/90 mt-0.5 font-medium">Saturday: 9:00 AM to 1:00 PM</p>
-                <p className="text-xs text-red-400 mt-0.5 font-medium">Sunday: Closed</p>
+                <p className="text-xs text-white/90 mt-1 font-medium">Monday - Friday: 02:30 AM to 04:00 PM</p>
+                <p className="text-xs text-red-400 mt-0.5 font-medium">Saturday - Sunday: Closed</p>
               </div>
             </div>
           </div>

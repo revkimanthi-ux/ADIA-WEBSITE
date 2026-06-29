@@ -1,4 +1,4 @@
-export type Page = 'home' | 'about' | 'courses' | 'admissions' | 'gallery' | 'news' | 'contact';
+export type Page = 'home' | 'about' | 'courses' | 'admissions' | 'gallery' | 'news' | 'contact' | 'admin';
 
 export interface HeaderConfig {
   tel: string;

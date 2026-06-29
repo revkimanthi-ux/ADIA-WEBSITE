@@ -14,18 +14,76 @@ export default function AdmissionsView({ setCurrentPage }: AdmissionsViewProps) 
     phone: "",
     selectedCourse: "it",
     prevEducation: "KCSE Certificate",
-    additionalNotes: ""
+    additionalNotes: "",
+    academicCredentialsUrl: "",
+    academicCredentialsName: "",
+    nationalIdUrl: "",
+    nationalIdName: ""
   });
   const [submitted, setSubmitted] = useState(false);
   const [ticketNumber, setTicketNumber] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
   const [validationError, setValidationError] = useState("");
   const [downloadSuccess, setDownloadSuccess] = useState(false);
+  
+  const [isUploadingCredentials, setIsUploadingCredentials] = useState(false);
+  const [isUploadingNationalId, setIsUploadingNationalId] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: "academicCredentials" | "nationalId") => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (field === "academicCredentials") {
+      setIsUploadingCredentials(true);
+    } else {
+      setIsUploadingNationalId(true);
+    }
+    setUploadError("");
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      try {
+        const base64Data = reader.result as string;
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileData: base64Data,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Upload failed");
+
+        setFormData(prev => ({
+          ...prev,
+          [field === "academicCredentials" ? "academicCredentialsUrl" : "nationalIdUrl"]: data.url,
+          [field === "academicCredentials" ? "academicCredentialsName" : "nationalIdName"]: file.name,
+        }));
+      } catch (err: any) {
+        setUploadError(err.message || "Failed to upload file. Please try again.");
+      } finally {
+        if (field === "academicCredentials") {
+          setIsUploadingCredentials(false);
+        } else {
+          setIsUploadingNationalId(false);
+        }
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.fullName || !formData.phone || !formData.email) {
       setValidationError("Please fill out all required fields.");
+      return;
+    }
+    if (!formData.academicCredentialsUrl || !formData.nationalIdUrl) {
+      setValidationError("Please upload both your Academic Credentials and National ID/Birth Certificate.");
       return;
     }
     setValidationError("");
@@ -77,10 +135,10 @@ export default function AdmissionsView({ setCurrentPage }: AdmissionsViewProps) 
               {[
                 "A copy of National ID card or Birth Certificate",
                 "KCSE certificate / result slip (or life experience equivalent)",
-                "Two recent passport-sized photographs",
+                "4 passport-sized photos",
                 "An open mind and commitment to attend practical sessions",
                 "Completed Application Form",
-                "Basic non-refundable registration fee of 1,000 KES"
+                "2,000 ksh admission fee (non refundable)"
               ].map((req, idx) => (
                 <div key={idx} className="flex gap-3 items-start">
                   <CheckCircle className="text-[#C9A84C] mt-0.5 flex-shrink-0" size={14} />
@@ -96,7 +154,7 @@ export default function AdmissionsView({ setCurrentPage }: AdmissionsViewProps) 
               Programmes Fee Structure
             </h3>
             <p className="text-xs text-white/60 leading-relaxed font-light">
-              ADIA Empowerment Centre strives to maintain affordable rates for all Nairobi community members. Below is the total tuition cost per semester. (Installment payments are supported).
+              ADIA Empowerment Centre strives to maintain affordable rates for all Nairobi community members. All courses are 100% Accredited and Approved By TVET & NITA.
             </p>
 
             <div className="overflow-x-auto border border-white/10 rounded-none mt-2">
@@ -105,21 +163,19 @@ export default function AdmissionsView({ setCurrentPage }: AdmissionsViewProps) 
                   <tr className="bg-white/5 border-b border-white/10 text-[#C9A84C] font-bold uppercase tracking-wider">
                     <th className="p-4">Programme Name</th>
                     <th className="p-4">Duration</th>
-                    <th className="p-4">Tuition / Sem</th>
                     <th className="p-4">Lab / Materials</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 bg-white/[0.02]">
                   {[
-                    { name: "Information Technology (IT)", duration: "6 Months", tuition: "18,500 KES", lab: "Free" },
-                    { name: "Hospitality & Catering", duration: "6 Months", tuition: "22,500 KES", lab: "Included" },
-                    { name: "Fashion & Design", duration: "6 Months", tuition: "19,500 KES", lab: "Included" },
-                    { name: "Beauty & Cosmetology", duration: "6 Months", tuition: "21,000 KES", lab: "Included" },
+                    { name: "Information Technology (IT)", duration: "7 Months (Inclusive Attachment)", lab: "Free" },
+                    { name: "Hospitality & Catering", duration: "7 Months (Inclusive Attachment)", lab: "Included" },
+                    { name: "Fashion & Design", duration: "7 Months (Inclusive Attachment)", lab: "Included" },
+                    { name: "Beauty & Cosmetology", duration: "7 Months (Inclusive Attachment)", lab: "Included" },
                   ].map((row, idx) => (
                     <tr key={idx} className="hover:bg-white/5 transition-colors">
                       <td className="p-4 font-bold text-white uppercase tracking-wider">{row.name}</td>
                       <td className="p-4">{row.duration}</td>
-                      <td className="p-4 font-bold text-[#C9A84C]">{row.tuition}</td>
                       <td className="p-4 text-emerald-400 font-semibold">{row.lab}</td>
                     </tr>
                   ))}
@@ -133,12 +189,12 @@ export default function AdmissionsView({ setCurrentPage }: AdmissionsViewProps) 
             <div className="bg-white/5 border border-white/10 p-6 rounded-none flex flex-col gap-3">
               <div className="flex items-center gap-2 text-[#C9A84C]">
                 <Calendar size={16} />
-                <h4 className="font-bold text-xs uppercase tracking-widest">Academic Calendar</h4>
+                <h4 className="font-bold text-xs uppercase tracking-widest">Academic Calendar & Intakes</h4>
               </div>
               <ul className="text-xs text-white/70 leading-relaxed font-light space-y-2.5 mt-2">
-                <li><span className="font-bold text-white">● Jan-Jun Session:</span> Admissions close Dec 15</li>
-                <li><span className="font-bold text-white">● May-Oct Session:</span> Admissions close Apr 15</li>
-                <li><span className="font-bold text-white">● Sep-Feb Session:</span> Admissions close Aug 15</li>
+                <li><span className="font-bold text-white">● January to August Session:</span> Admissions close Dec 15</li>
+                <li><span className="font-bold text-white">● April to December Session:</span> Admissions close Mar 15</li>
+                <li><span className="font-bold text-white">● September to April Session:</span> Admissions close Aug 15</li>
               </ul>
             </div>
 
@@ -176,7 +232,7 @@ export default function AdmissionsView({ setCurrentPage }: AdmissionsViewProps) 
               <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                 <div className="border-b border-white/10 pb-4">
                   <h3 className="text-[#C9A84C] font-bold text-xs uppercase tracking-widest">Online Application</h3>
-                  <p className="text-[10px] text-white/50 font-light mt-1 uppercase tracking-wider">Submit details to reserve a tuition slot.</p>
+                  <p className="text-[10px] text-white/50 font-light mt-1 uppercase tracking-wider">Submit details to reserve your admission slot.</p>
                 </div>
 
                 {validationError && (
@@ -254,6 +310,62 @@ export default function AdmissionsView({ setCurrentPage }: AdmissionsViewProps) 
                   </select>
                 </div>
 
+                {/* Academic Credentials Upload */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-[9px] uppercase tracking-widest font-bold text-white/60">
+                    Academic Credentials (KCSE/KCPE Certificate or Result Slip) *
+                  </label>
+                  <div className="relative border border-dashed border-white/20 hover:border-[#C9A84C] p-4 text-center cursor-pointer transition-colors flex flex-col items-center justify-center gap-1 min-h-[90px] bg-white/5">
+                    <input
+                      type="file"
+                      onChange={(e) => handleFileUpload(e, "academicCredentials")}
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    />
+                    <FileText size={20} className="text-[#C9A84C]" />
+                    <span className="text-[10px] text-white/80 font-medium">
+                      {isUploadingCredentials ? "Uploading..." : formData.academicCredentialsName || "Select or Drag & Drop Academic Certificate"}
+                    </span>
+                    <span className="text-[8px] text-white/40">Accepts PDF, JPG, PNG (Max 50MB)</span>
+                  </div>
+                  {formData.academicCredentialsUrl && (
+                    <span className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider">
+                      ✓ Certificate uploaded: {formData.academicCredentialsName}
+                    </span>
+                  )}
+                </div>
+
+                {/* National ID / Birth Certificate Upload */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-[9px] uppercase tracking-widest font-bold text-white/60">
+                    National ID / Birth Certificate *
+                  </label>
+                  <div className="relative border border-dashed border-white/20 hover:border-[#C9A84C] p-4 text-center cursor-pointer transition-colors flex flex-col items-center justify-center gap-1 min-h-[90px] bg-white/5">
+                    <input
+                      type="file"
+                      onChange={(e) => handleFileUpload(e, "nationalId")}
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    />
+                    <FileText size={20} className="text-[#C9A84C]" />
+                    <span className="text-[10px] text-white/80 font-medium">
+                      {isUploadingNationalId ? "Uploading..." : formData.nationalIdName || "Select or Drag & Drop ID / Birth Certificate"}
+                    </span>
+                    <span className="text-[8px] text-white/40">Accepts PDF, JPG, PNG (Max 50MB)</span>
+                  </div>
+                  {formData.nationalIdUrl && (
+                    <span className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider">
+                      ✓ ID document uploaded: {formData.nationalIdName}
+                    </span>
+                  )}
+                </div>
+
+                {uploadError && (
+                  <div className="bg-red-500/10 border border-red-500/30 text-red-300 text-[10px] p-2.5 font-semibold uppercase tracking-wider">
+                    {uploadError}
+                  </div>
+                )}
+
                 {/* Additional notes */}
                 <div className="flex flex-col gap-2">
                   <label className="text-[9px] uppercase tracking-widest font-bold text-white/60">Additional notes (Sponsorship, etc.)</label>
@@ -287,10 +399,17 @@ export default function AdmissionsView({ setCurrentPage }: AdmissionsViewProps) 
                   </p>
                 </div>
 
-                <div className="bg-white/5 border border-white/10 rounded-none p-5 w-full flex flex-col gap-2 items-center">
+                <div className="bg-white/5 border border-white/10 rounded-none p-5 w-full flex flex-col gap-2 items-center text-center">
                   <span className="text-[9px] uppercase tracking-widest font-bold text-[#C9A84C]">YOUR ENROLLMENT TICKET</span>
                   <span className="font-mono text-lg font-bold tracking-widest text-emerald-400">{ticketNumber}</span>
-                  <span className="text-[10px] text-white/40 mt-1 leading-relaxed">Please keep this code safe. Our administration team will call you at <span className="text-white font-bold">{formData.phone}</span> to finalize intake registration.</span>
+                  
+                  <div className="border-t border-white/10 pt-3 mt-2 w-full text-left space-y-1 text-[10px] text-white/60">
+                    <p className="font-bold text-[8px] uppercase tracking-widest text-white/40">Uploaded Attachments:</p>
+                    <p className="truncate">📎 ID: <span className="text-white">{formData.nationalIdName}</span></p>
+                    <p className="truncate">📎 Academics: <span className="text-white">{formData.academicCredentialsName}</span></p>
+                  </div>
+                  
+                  <span className="text-[10px] text-white/40 mt-3 leading-relaxed">Please keep this code safe. Our administration team will call you at <span className="text-white font-bold">{formData.phone}</span> to finalize intake registration.</span>
                 </div>
 
                 <button
@@ -302,7 +421,11 @@ export default function AdmissionsView({ setCurrentPage }: AdmissionsViewProps) 
                       phone: "",
                       selectedCourse: "it",
                       prevEducation: "KCSE Certificate",
-                      additionalNotes: ""
+                      additionalNotes: "",
+                      academicCredentialsUrl: "",
+                      academicCredentialsName: "",
+                      nationalIdUrl: "",
+                      nationalIdName: ""
                     });
                   }}
                   className="bg-transparent hover:bg-white/5 text-[#C9A84C] font-bold uppercase text-xs tracking-widest py-3 px-6 border border-[#C9A84C]/30 hover:border-[#C9A84C] transition-colors mt-4 cursor-pointer"

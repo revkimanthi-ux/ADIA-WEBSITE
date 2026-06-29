@@ -89,7 +89,7 @@ export default function AboutView({ setCurrentPage }: AboutViewProps) {
               />
               <div className="absolute bottom-5 left-5 right-5 bg-[#0D1B4B] border border-[#C9A84C]/35 p-4 text-center shadow-lg">
                 <span className="font-sans font-extrabold text-lg text-[#C9A84C] block uppercase tracking-wide">100% Accredited</span>
-                <span className="text-[9px] text-white/50 uppercase tracking-widest block mt-1">Approved Technical Syllabi</span>
+                <span className="text-[9px] text-white/50 uppercase tracking-widest block mt-1">Approved By TVET & NITA</span>
               </div>
             </div>
           </div>

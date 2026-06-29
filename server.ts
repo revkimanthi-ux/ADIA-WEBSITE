@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import dotenv from "dotenv";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 
@@ -10,7 +11,9 @@ dotenv.config();
 const app = express();
 const PORT = 3000;
 
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // Lazy-initialize Gemini AI client safely
 let aiClient: GoogleGenAI | null = null;
@@ -79,21 +82,464 @@ Behavior Rules:
 `;
 
 // API routes for full-stack functionality
+const DATA_STORE_PATH = path.join(process.cwd(), "data_store.json");
+
+// Helper to load or initialize data store
+function loadDataStore() {
+  const defaults = {
+    adminPasscode: "adia2026",
+    headerConfig: {
+      tel: "0105086218",
+      admissionsOpen: "ADMISSIONS OPEN: JAN 2026",
+      email: "info@adiaempowerment.ac.ke",
+      facebook: "https://facebook.com",
+      instagram: "https://instagram.com",
+      whatsapp: "https://wa.me/254105086218",
+      logoText: "ADIA EMPOWERMENT",
+      logoSubtitle: "CENTRE • NAIROBI, KENYA"
+    },
+    slides: [
+      {
+        id: "slide-1",
+        title: "SHAPING EAST AFRICA'S DIGITAL FRONTIER",
+        subtitle: "Acquire certified technical and software expertise in our high-speed computing labs in Nairobi.",
+        imageUrl: "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&q=80&w=1200",
+        ctaText: "EXPLORE IT COURSES",
+        ctaPage: "courses"
+      },
+      {
+        id: "slide-2",
+        title: "MASTER THE ART OF CULINARY EXCELLENCE",
+        subtitle: "Learn professional culinary arts, pastry baking, and hospitality management under master chefs.",
+        imageUrl: "https://images.unsplash.com/photo-1577106263724-2c8e03bfe9cf?auto=format&fit=crop&q=80&w=1200",
+        ctaText: "CULINARY PROGRAMS",
+        ctaPage: "courses"
+      },
+      {
+        id: "slide-3",
+        title: "EMPOWER YOUR CREATIVE APPAREL VISION",
+        subtitle: "From custom pattern drafting to professional garment construction, launch your own bespoke tailoring brand.",
+        imageUrl: "https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=1200",
+        ctaText: "FASHION DESIGN COURSES",
+        ctaPage: "courses"
+      },
+      {
+        id: "slide-4",
+        title: "YOUR GATEWAY TO THE BEAUTY INDUSTRY",
+        subtitle: "Gain certified skills in advanced chemical hair styling, aesthetics, skin therapy, and professional makeup.",
+        imageUrl: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=1200",
+        ctaText: "BEAUTY & COSMETOLOGY",
+        ctaPage: "courses"
+      }
+    ],
+    news: [
+      {
+        id: "news-1",
+        title: "September 2026 Admissions Open: Early Bird Discount Available",
+        date: "June 25, 2026",
+        category: "Announcement",
+        summary: "ADIA Empowerment Centre has officially opened applications for our highly sought-after September 2026 intake. Learn about early-bird scholarship discounts.",
+        content: "We are thrilled to announce that applications for the upcoming September 2026 Intake are now officially open. To encourage local youth empowerment, ADIA is offering a 10% 'Early Bird' tuition waiver for all candidates who submit their complete application forms and pay the deposit before July 31st, 2026. This promotion applies to all our flagship 6-month programmes, including IT, Hospitality & Catering, Fashion & Design, and Beauty & Cosmetology. Prospective students are encouraged to apply online or pick up a hardcopy form at our Nairobi reception.",
+        imageUrl: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&q=80&w=800",
+        tags: ["Intake", "Scholarships", "Admissions"]
+      },
+      {
+        id: "news-2",
+        title: "ADIA Hospitality Students Lead Catering for Nairobi Youth Summit",
+        date: "June 18, 2026",
+        category: "News",
+        summary: "Our School of Culinary Arts & Hospitality Management successfully catered a 3-day regional youth delegation with stellar remarks.",
+        content: "Congratulations to our Hospitality & Catering department! Last weekend, thirty-five of our catering students, under the supervision of Chef Instructor David, designed, prepared, and served the entire menu for the Nairobi Regional Youth Summit. The 3-day delegation hosted over 250 local and international leaders. Delegates praised the high quality of standard continental bites, local Kenyan dishes, and prompt customer service. This high-profile service project highlights ADIA's commitment to giving students raw, practical, and highly real-world training environments before graduation.",
+        imageUrl: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&q=80&w=800",
+        tags: ["Catering", "Summit", "StudentSuccess"]
+      },
+      {
+        id: "news-3",
+        title: "Annual Vocational Skills Expo & Graduation Ceremony",
+        date: "May 10, 2026",
+        category: "Event",
+        summary: "Join us for the ADIA Skills Expo featuring bespoke fashion runway designs, gourmet tastings, and IT innovations by graduating students.",
+        content: "The general public, community sponsors, and parents are warmly invited to the ADIA annual Skills Expo and Graduation Ceremony on Friday, July 10th, 2026. The expo begins at 9:00 AM on our campus grounds, showcasing live web creations, custom-tailored African wear collections on the runway, facial skin analysis clinics, and premium bakeries. The graduation ceremony will follow in the afternoon, celebrating over 120 skilled youth entering the workforce. Come witness firsthand the life-changing impact of empowerment!",
+        imageUrl: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=800",
+        tags: ["Graduation", "Expo", "Showcase"]
+      }
+    ],
+    gallery: [
+      {
+        id: "g1",
+        title: "IT Lab Interactive Training",
+        category: "it",
+        description: "Students designing local business web templates in our high-speed IT Lab.",
+        imageUrl: "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&q=80&w=600"
+      },
+      {
+        id: "g2",
+        title: "Catering Baking Session",
+        category: "hospitality",
+        description: "Hands-on pastry baking and cake decoration workshop under professional supervision.",
+        imageUrl: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&q=80&w=600"
+      },
+      {
+        id: "g3",
+        title: "Garment Pattern Assembly",
+        category: "fashion",
+        description: "A Fashion student finishing measurements on a bespoke dress pattern.",
+        imageUrl: "https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=600"
+      },
+      {
+        id: "g4",
+        title: "Bridal Makeup Practice",
+        category: "beauty",
+        description: "Beauty students mastering high-definition bridal and events makeup techniques.",
+        imageUrl: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=600"
+      },
+      {
+        id: "g5",
+        title: "Student Graduation Day",
+        category: "campus",
+        description: "Celebrating our proud graduates ready to impact Nairobi's vocational landscape.",
+        imageUrl: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=600"
+      },
+      {
+        id: "g6",
+        title: "Catering Plating Practical",
+        category: "hospitality",
+        description: "Fine dining setups and culinary presentation techniques by our catering department.",
+        imageUrl: "https://images.unsplash.com/photo-1577106263724-2c8e03bfe9cf?auto=format&fit=crop&q=80&w=600"
+      },
+      {
+        id: "g7",
+        title: "Hair Styling Lab",
+        category: "beauty",
+        description: "Creative hair styling and salon practice on mannequins in our wellness room.",
+        imageUrl: "https://images.unsplash.com/photo-1605497746444-11d6118d867c?auto=format&fit=crop&q=80&w=600"
+      },
+      {
+        id: "g8",
+        title: "Hardware Maintenance Lab",
+        category: "it",
+        description: "IT students diagnostic check and component troubleshooting under instructor mentorship.",
+        imageUrl: "https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?auto=format&fit=crop&q=80&w=600"
+      }
+    ]
+  };
+
+  try {
+    if (fs.existsSync(DATA_STORE_PATH)) {
+      const data = fs.readFileSync(DATA_STORE_PATH, "utf-8");
+      const parsed = JSON.parse(data);
+      if (!parsed.adminPasscode) {
+        parsed.adminPasscode = "adia2026";
+        fs.writeFileSync(DATA_STORE_PATH, JSON.stringify(parsed, null, 2), "utf-8");
+      }
+      return parsed;
+    } else {
+      fs.writeFileSync(DATA_STORE_PATH, JSON.stringify(defaults, null, 2), "utf-8");
+      return defaults;
+    }
+  } catch (err) {
+    console.error("Error reading data store file:", err);
+    return defaults;
+  }
+}
+
+function saveToStore(key: string, data: any) {
+  try {
+    const store = loadDataStore();
+    store[key] = data;
+    fs.writeFileSync(DATA_STORE_PATH, JSON.stringify(store, null, 2), "utf-8");
+    return true;
+  } catch (err) {
+    console.error(`Error saving ${key} to data store:`, err);
+    return false;
+  }
+}
+
+// In-memory administrative security state
+interface SessionInfo {
+  username: string;
+  expiresAt: number;
+}
+
+interface SecurityLogEntry {
+  id: string;
+  timestamp: string;
+  username: string;
+  status: "SUCCESS" | "FAILED" | "PASSWORD_CHANGED" | "LOGOUT";
+  ip: string;
+  userAgent: string;
+}
+
+const activeSessions = new Map<string, SessionInfo>();
+const securityLogs: SecurityLogEntry[] = [];
+const failedAttempts = new Map<string, { count: number; lockedUntil: number }>();
+
+// Helper to log administrative security events
+function addSecurityLog(username: string, status: "SUCCESS" | "FAILED" | "PASSWORD_CHANGED" | "LOGOUT", req: express.Request) {
+  const ip = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "Unknown IP";
+  const userAgent = req.headers["user-agent"] || "Unknown User Agent";
+  
+  securityLogs.unshift({
+    id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    timestamp: new Date().toLocaleString("en-US", { timeZone: "Africa/Nairobi" }), // local institutional time
+    username: username || "anonymous",
+    status,
+    ip,
+    userAgent
+  });
+
+  // Keep logs capped at latest 50 entries
+  if (securityLogs.length > 50) {
+    securityLogs.pop();
+  }
+}
+
+// Session Validator Middleware
+function validateAdminSession(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Access Denied: Unauthenticated administrative session." });
+  }
+  const token = authHeader.substring(7);
+  const session = activeSessions.get(token);
+  if (!session) {
+    return res.status(401).json({ error: "Access Denied: Invalid or expired administrative session." });
+  }
+  if (Date.now() > session.expiresAt) {
+    activeSessions.delete(token);
+    addSecurityLog(session.username, "LOGOUT", req);
+    return res.status(401).json({ error: "Access Denied: Administrative session has expired." });
+  }
+  // Slide expiration (extend by another 30 mins)
+  session.expiresAt = Date.now() + 30 * 60 * 1000;
+  next();
+}
+
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", time: new Date().toISOString() });
 });
 
-app.get("/api/header-config", (req, res) => {
+// Secure Admin Login API
+app.post("/api/admin/login", (req, res) => {
+  const { username, passcode } = req.body;
+  const ip = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "global";
+  
+  // Rate-limiting check
+  const attempt = failedAttempts.get(ip);
+  if (attempt && attempt.lockedUntil > Date.now()) {
+    const waitSeconds = Math.ceil((attempt.lockedUntil - Date.now()) / 1000);
+    return res.status(429).json({
+      error: `Too many login attempts. Access temporarily locked. Please wait ${waitSeconds} seconds.`
+    });
+  }
+
+  const store = loadDataStore();
+  const validPasscode = process.env.ADMIN_PASSCODE || store.adminPasscode || "adia2026";
+  const validUsername = "admin";
+
+  if (username === validUsername && passcode === validPasscode) {
+    // Reset failures on success
+    failedAttempts.delete(ip);
+
+    // Generate session token
+    const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+    const expiresAt = Date.now() + 30 * 60 * 1000; // 30 minutes
+    
+    activeSessions.set(token, {
+      username: validUsername,
+      expiresAt
+    });
+
+    addSecurityLog(validUsername, "SUCCESS", req);
+    return res.json({
+      success: true,
+      token,
+      username: validUsername,
+      expiresAt,
+      isDefaultPasscode: validPasscode === "adia2026"
+    });
+  } else {
+    // Increment failure counter
+    const currentCount = attempt ? attempt.count + 1 : 1;
+    let lockedUntil = 0;
+    if (currentCount >= 5) {
+      lockedUntil = Date.now() + 60 * 1000; // 60 seconds lockout
+    }
+    failedAttempts.set(ip, {
+      count: currentCount,
+      lockedUntil
+    });
+
+    addSecurityLog(username || "unknown", "FAILED", req);
+    
+    if (currentCount >= 5) {
+      return res.status(429).json({
+        error: "Too many failed login attempts. Administrative portal is locked for 60 seconds."
+      });
+    } else {
+      return res.status(401).json({
+        error: `Invalid credentials. ${5 - currentCount} attempts remaining before security lockout.`
+      });
+    }
+  }
+});
+
+// Secure Password Change API
+app.post("/api/admin/change-passcode", validateAdminSession, (req, res) => {
+  const { currentPasscode, newPasscode } = req.body;
+  if (!currentPasscode || !newPasscode) {
+    return res.status(400).json({ error: "Current passcode and new passcode are required." });
+  }
+
+  const store = loadDataStore();
+  const validPasscode = process.env.ADMIN_PASSCODE || store.adminPasscode || "adia2026";
+
+  if (currentPasscode !== validPasscode) {
+    return res.status(400).json({ error: "Current passcode is incorrect." });
+  }
+
+  if (newPasscode.length < 4) {
+    return res.status(400).json({ error: "New passcode must be at least 4 characters long." });
+  }
+
+  const success = saveToStore("adminPasscode", newPasscode);
+  if (success) {
+    addSecurityLog("admin", "PASSWORD_CHANGED", req);
+    res.json({ success: true, message: "Administrative passcode updated successfully on disk." });
+  } else {
+    res.status(500).json({ error: "Failed to write new passcode to disk." });
+  }
+});
+
+// GET Security logs
+app.get("/api/admin/security-logs", validateAdminSession, (req, res) => {
   res.json({
-    tel: "0105086218",
-    admissionsOpen: "ADMISSIONS OPEN: JAN 2026",
-    email: "info@adiaempowerment.ac.ke",
-    facebook: "https://facebook.com",
-    instagram: "https://instagram.com",
-    whatsapp: "https://wa.me/254105086218",
-    logoText: "ADIA EMPOWERMENT",
-    logoSubtitle: "CENTRE • NAIROBI, KENYA"
+    logs: securityLogs,
+    activeSessionsCount: activeSessions.size
   });
+});
+
+// Secure Sign Out API
+app.post("/api/admin/logout", (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    const token = authHeader.substring(7);
+    const session = activeSessions.get(token);
+    if (session) {
+      addSecurityLog(session.username, "LOGOUT", req);
+      activeSessions.delete(token);
+    }
+  }
+  res.json({ success: true });
+});
+
+app.get("/api/header-config", (req, res) => {
+  const store = loadDataStore();
+  res.json(store.headerConfig);
+});
+
+app.post("/api/header-config", validateAdminSession, (req, res) => {
+  const { headerConfig } = req.body;
+  if (!headerConfig) {
+    return res.status(400).json({ error: "headerConfig is required" });
+  }
+  const success = saveToStore("headerConfig", headerConfig);
+  if (success) {
+    res.json({ success: true, headerConfig });
+  } else {
+    res.status(500).json({ error: "Failed to save configuration" });
+  }
+});
+
+app.get("/api/slides", (req, res) => {
+  const store = loadDataStore();
+  res.json(store.slides);
+});
+
+app.post("/api/slides", validateAdminSession, (req, res) => {
+  const { slides } = req.body;
+  if (!slides || !Array.isArray(slides)) {
+    return res.status(400).json({ error: "slides array is required" });
+  }
+  const success = saveToStore("slides", slides);
+  if (success) {
+    res.json({ success: true, slides });
+  } else {
+    res.status(500).json({ error: "Failed to save slides" });
+  }
+});
+
+app.get("/api/news", (req, res) => {
+  const store = loadDataStore();
+  res.json(store.news);
+});
+
+app.post("/api/news", validateAdminSession, (req, res) => {
+  const { news } = req.body;
+  if (!news || !Array.isArray(news)) {
+    return res.status(400).json({ error: "news array is required" });
+  }
+  const success = saveToStore("news", news);
+  if (success) {
+    res.json({ success: true, news });
+  } else {
+    res.status(500).json({ error: "Failed to save news" });
+  }
+});
+
+app.get("/api/gallery", (req, res) => {
+  const store = loadDataStore();
+  res.json(store.gallery);
+});
+
+app.post("/api/gallery", validateAdminSession, (req, res) => {
+  const { gallery } = req.body;
+  if (!gallery || !Array.isArray(gallery)) {
+    return res.status(400).json({ error: "gallery array is required" });
+  }
+  const success = saveToStore("gallery", gallery);
+  if (success) {
+    res.json({ success: true, gallery });
+  } else {
+    res.status(500).json({ error: "Failed to save gallery" });
+  }
+});
+
+// File upload endpoint for admin media and applicant files
+app.post("/api/upload", (req, res) => {
+  const { fileName, fileData } = req.body;
+  if (!fileName || !fileData) {
+    return res.status(400).json({ error: "fileName and fileData are required" });
+  }
+
+  try {
+    const matches = fileData.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    if (!matches || matches.length !== 3) {
+      return res.status(400).json({ error: "Invalid base64 data format" });
+    }
+
+    const fileBuffer = Buffer.from(matches[2], "base64");
+    const uploadsDir = path.join(process.cwd(), "uploads");
+
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const ext = path.extname(fileName) || ".jpg";
+    const baseName = path.basename(fileName, ext).replace(/[^a-z0-9]/gi, "_").toLowerCase();
+    const uniqueFileName = `${baseName}-${Date.now()}${ext}`;
+    const filePath = path.join(uploadsDir, uniqueFileName);
+
+    fs.writeFileSync(filePath, fileBuffer);
+
+    res.json({
+      success: true,
+      url: `/uploads/${uniqueFileName}`
+    });
+  } catch (err: any) {
+    console.error("Error saving file:", err);
+    res.status(500).json({ error: err.message || "Failed to save file" });
+  }
 });
 
 // Chat proxy endpoint
